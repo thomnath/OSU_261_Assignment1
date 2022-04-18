@@ -217,33 +217,71 @@ def count_sort(arr: StaticArray) -> StaticArray:
 
     :returns: A new array containing all elements of the original array, but sorted in descending order
     """
-    pass
-    """"
-    # Create an array of all values within the min/max range of the original array, and reverse it
+    # Create an array of all values within the max range of the original array
     range_vals = min_max(arr)
-    range_arr = sa_range(range_vals[0], range_vals[1])
-    reverse(range_arr)
+    if range_vals[1] <= 0:
+        range_arr = sa_range(0, abs(range_vals[0]))
+    else:
+        range_arr = sa_range(0, range_vals[1])
     new_arr = StaticArray(arr.length())
-    new_arr.set(0, range_vals[1])
-    new_arr.set((new_arr.length()-1), range_vals[0])
-    # Create a count_arr to determine how many of each value is in the original array
-    count_arr = StaticArray(range_arr.length())
-    for num1 in range(range_arr.length()):
-        count = 0
-        for num2 in range(arr.length()):
-            if range_arr.get(num1) == arr.get(num2):
-                count += 1
-        count_arr.set(num1, count)
-    fill_count = 0
-    # Uses the values in the count_arr to fill the new_arr
-    for num3 in range(range_arr.length()):
-        fill_num = count_arr.get(num3)
-        while fill_num != 0:
-            new_arr.set(fill_count, range_arr.get(num3))
-            fill_num -= 1
-            fill_count += 1
-    return new_arr
-"""
+    # If there are negative values, we need two count arrays; otherwise, just one
+    if range_vals[0] > 0 or range_vals[1] <= 0:
+        count_arr = StaticArray(range_arr.length() + 1)
+        # Set all count array to 0 instead of None
+        for num in range(count_arr.length()):
+            count_arr.set(num, 0)
+        # Adds 1 for each instance of the value encountered - each value has an index in the count array
+        for num in range(arr.length()):
+            now_count = count_arr.get(abs(arr.get(num)))
+            count_arr.set(abs(arr.get(num)), now_count + 1)
+        # Loops through the count array to fill the new array
+        new_arr_index = 0
+        for num in range(count_arr.length()):
+            x = count_arr.get(num)
+            while x > 0:
+                new_arr.set(new_arr_index, num)
+                new_arr_index += 1
+                x -= 1
+        if (range_vals[0] < 0 and range_vals[1] <= 0):
+            for num in range(new_arr.length()):
+                new_arr.set(num, (new_arr.get(num) * -1))
+    else:
+        poz_count_arr = StaticArray(abs(range_vals[1] + 1)) # this is where we are having problems with arr size
+        neg_count_arr = StaticArray(abs(range_vals[0]) + 1)
+        # Set all count array to 0 instead of None
+        for num in range(neg_count_arr.length()):
+            neg_count_arr.set(num, 0)
+        for num in range(poz_count_arr.length()):
+            poz_count_arr.set(num, 0)
+        # Adds 1 for each instance of the value encountered - each value has an index in the count array
+        for num in range(arr.length()):
+            if arr.get(num) >= 0:
+                now_count = poz_count_arr.get(arr.get(num))
+                poz_count_arr.set(arr.get(num), now_count + 1)
+        for num in range(abs(range_vals[0])):
+            if arr.get(num) < 0:
+                now_count = neg_count_arr.get(abs(arr.get(num)))
+                neg_count_arr.set(abs(arr.get(num)), now_count + 1)
+        # Loops through the count array to fill the new array
+        new_arr_index = 0
+        neg_ind = neg_count_arr.length()-1
+        while neg_ind >= 0:
+        #for num in range(neg_count_arr.length()):
+            x = neg_count_arr.get(neg_ind)
+            while x > 0:
+                new_arr.set(new_arr_index, (neg_ind * -1))
+                new_arr_index += 1
+                x -= 1
+            neg_ind -= 1
+        for num in range(poz_count_arr.length()):
+            x = poz_count_arr.get(num)
+            while x > 0:
+                new_arr.set(new_arr_index, num)
+                new_arr_index += 1
+                x -= 1
+    reverse(new_arr)
+    return (new_arr)
+
 
 # ------------------- PROBLEM 10 - SORTED SQUARES ---------------------------
 
@@ -259,8 +297,8 @@ def sorted_squares(arr: StaticArray) -> StaticArray:
     if (arr.get(0) < 0) ^ (arr.get(arr.length()-1) < 0):
         # Loop thru till we find a pivot index point
         pivot = 0
-        for num in range(arr.length()):
-            if arr.get(num) == 0 or (num<0 and (num-1)>0) or (num>0 and (num+1)<0):
+        for num in range(1, arr.length()):
+            if arr.get(num) == 0 or (arr.get(num) < 0 and (num > 0 and (arr.get(num - 1) > 0)) or (arr.get(num) > 0 and arr.get(num + 1) < 0)):
                 pivot = num
         # Since the pivot is the "threshold" value, all other values square will be over zero (larger).
         if pivot < arr.length() - 1:
@@ -315,7 +353,7 @@ def sorted_squares(arr: StaticArray) -> StaticArray:
 
 
 if __name__ == "__main__":
-
+    '''
     print('\n# min_max example 1')
     arr = StaticArray(5)
     for i, value in enumerate([7, 8, 6, -5, 4]):
@@ -441,9 +479,12 @@ if __name__ == "__main__":
 
     print('\n# count_sort example 1')
     test_cases = (
-        [1, 2, 4, 3, 5], [5, 4, 3, 2, 1], [0, -5, -3, -4, -2, -1, 0],
-        [-3, -2, -1, 0, 1, 2, 3], [1, 2, 3, 4, 3, 2, 1, 5, 5, 2, 3, 1],
-        [10100, 10721, 10320, 10998], [-100320, -100450, -100999, -100001],
+        [1, 2, 4, 3, 5], [5, 4, 3, 2, 1],
+        [0, -5, -3, -4, -2, -1, 0],
+        [-3, -2, -1, 0, 1, 2, 3],
+        [1, 2, 3, 4, 3, 2, 1, 5, 5, 2, 3, 1],
+        [10100, 10721, 10320, 10998],
+        [-100320, -100450, -100999, -100001],
     )
     for case in test_cases:
         arr = StaticArray(len(case))
@@ -480,7 +521,7 @@ if __name__ == "__main__":
         print(arr)
         result = sorted_squares(arr)
         print(result)
-
+'''
     print('\n# sorted_squares example 2')
     array_size = 5_000_000
     case = [random.randint(-10 ** 9, 10 ** 9) for _ in range(array_size)]
